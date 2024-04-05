@@ -1,13 +1,11 @@
-async function getEnv(env) {
+async function getEnv() {
   const url = 'data/env.json';
-  
+
   try {
     const response = await fetch(url);
     const result = await response.json();
-    
-    for (const key in result) {
-      env[key] = result[key];
-    }
+
+    return result;
   } catch (error) {
     console.error(error);
     try {
@@ -15,25 +13,21 @@ async function getEnv(env) {
       const response = await fetch('fallback.json');
       const fallbackResult = await response.json(); // Assurez-vous que fallback.json est bien un JSON valide
 
-      for (const key in fallbackResult) {
-        env[key] = fallbackResult[key];
-      }
+      return fallbackResult;
     } catch (fallbackError) {
       console.error(fallbackError);
     }
   }
 }
 
-async function getData(data) {
+async function getData() {
   const url = 'https://jsonplaceholder.typicode.com/albums';
-  
+
   try {
     const response = await fetch(url);
     const result = await response.json();
-    
-    result.forEach((item) => {
-      data.push(item);
-    });
+
+    return result;
   } catch (error) {
     console.error(error);
 
@@ -42,60 +36,58 @@ async function getData(data) {
       const response = await fetch('fallback.json');
       const fallbackResult = await response.json(); // Assurez-vous que fallback.json est bien un JSON valide
 
-      fallbackResult.forEach((item) => {
-        data.push(item);
-      });
+      return fallbackResult;
     } catch (fallbackError) {
       console.error(fallbackError);
     }
   }
 }
 
-async function callAPI(token, data) {
+async function callAPI(token) {
   const options = {
     method: 'GET',
     headers: {
       accept: 'application/json',
-      Authorization: 'Bearer ' + token
-    }
+      Authorization: 'Bearer ' + token,
+    },
   };
-  
-  fetch('https://api.themoviedb.org/3/movie/changes?page=1', options)
-    .then(response => response.json())
-    .then(response => {
-      response.results.forEach((item) => {
-        data.push(item);
-      });
-    })
-    .catch(err => console.error(err));
+
+  const res = await fetch(
+    'https://api.themoviedb.org/3/movie/changes?page=1',
+    options,
+  ).catch((err) => console.error(err));
+
+  const data = await res.json();
+
+  return data;
 }
 
 // Utilisez une fonction asynchrone pour orchestrer le chargement
 async function loadApp() {
-  const env = {};
-  await getEnv(env);
+  const env = await getEnv();
 
-  const data = [];
-  await getData(data);
+  const data = await getData();
 
   // Enregistrement du Service Worker
   if ('serviceWorker' in navigator) {
     try {
-      const registration = await navigator.serviceWorker.register('script/sw.js');
+      const registration = await navigator.serviceWorker.register(
+        'script/sw.js',
+      );
       console.log('Service Worker enregistré avec succès:', registration);
     } catch (error) {
       console.error('Échec de l’enregistrement du Service Worker:', error);
     }
   }
 
-  const movies = [];
-  await callAPI(env.API_READ_ACCESS_TOKEN, movies);
-  console.log(movies);
+  const movies = await callAPI(env.API_READ_ACCESS_TOKEN);
 
-  movies.push({id: 444, adult: true})
-  console.log(movies);
-  movies.forEach((movie) => {
-    console.log(movie);
+  movies?.results?.forEach((movie) => {
+    document.querySelector('#movies').innerHTML += `
+    <div>
+      <p>Id: ${movie.id}</p>
+      <p>Adult: ${movie.adult}</p>
+    </div>`;
   });
 }
 
