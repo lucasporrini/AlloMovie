@@ -42,3 +42,15 @@ self.addEventListener('fetch', event => {
     })
   );
 });
+
+self.addEventListener('push', function(event) {
+  const title = 'Notification Push';
+  const data = event.data ? event.data.text() : 'No data';
+  const options = {
+    body: data,
+    icon: 'icon.png',
+    badge: 'badge.png'
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
