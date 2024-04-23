@@ -91,4 +91,25 @@ async function loadApp() {
   });
 }
 
+async function cacheResources() {
+  const cache = await caches.open('my-site-cache-v1');
+  const dataUrl = 'https://api.themoviedb.org/3/movie/changes?page=1';
+  const response = await fetch(dataUrl);
+  if (response.ok) {
+      await cache.put(dataUrl, response);
+  }
+}
+
+async function getCachedResources() {
+  const cache = await caches.open('my-site-cache-v1');
+  const match = await cache.match('https://api.themoviedb.org/3/movie/changes?page=1');
+  if (match) {
+      return match.json();
+  }
+  return null;
+}
+
+
 loadApp();
+cacheResources();
+getCachedResources();

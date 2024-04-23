@@ -22,19 +22,23 @@ self.addEventListener('activate', event => {
 
 self.addEventListener('fetch', event => {
   event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        if (response) {
-          return response;
-        }
-        return fetch(event.request).then(function(response) {
-          let responseClone = response.clone();
-          caches.open(CACHE_NAME).then(function(cache) {
-            cache.put(event.request, responseClone);
-          });
-          return response;
-        })
+    caches.match(event.request).then(cachedResponse => {
+      if (cachedResponse) {
+        return cachedResponse;
       }
-    )
+      return fetch(event.request).then(response => {
+        if (!response || response.status !== 200 || response.type !== 'basic') {
+            return response;
+        }
+        let responseToCache = response.clone();
+        caches.open(CACHE_NAME).then(cache => {
+            cache.put(event.request, responseToCache);
+        });
+        return response;
+      }).catch(error => {
+        console.error('Échec de la requête:', error);
+        return caches.match('/fallback.json');
+      });
+    })
   );
 });
